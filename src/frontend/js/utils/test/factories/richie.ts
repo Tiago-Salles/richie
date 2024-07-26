@@ -45,7 +45,27 @@ export const CourseStateFutureOpenFactory = factory<CourseState>(() => {
   };
 });
 
+enum OfferType {
+  PAID = 'PAID',
+  FREE = 'FREE',
+  PARTIALLY_FREE = 'PARTIALLY_FREE',
+  SUBSCRIPTION = 'SUBSCRIPTION',
+}
+
 export const CourseRunFactory = factory<CourseRun>(() => {
+  const offerValues = Object.values(OfferType);
+  const offer = offerValues[Math.floor(Math.random() * offerValues.length)];
+  const certificateOfferValues = [OfferType.PAID, OfferType.FREE, OfferType.SUBSCRIPTION];
+  const certificateOffer =
+    certificateOfferValues[Math.floor(Math.random() * certificateOfferValues.length)];
+  const currency = faker.finance.currency().code;
+  const price = [OfferType.FREE, OfferType.PARTIALLY_FREE].includes(offer)
+    ? 0
+    : parseFloat(faker.finance.amount({ min: 1, max: 100, symbol: currency, autoFormat: true }));
+  const certificatePrice =
+    certificateOffer === OfferType.FREE
+      ? 0
+      : parseFloat(faker.finance.amount({ min: 1, max: 100, symbol: currency, autoFormat: true }));
   return {
     id: faker.number.int(),
     resource_link: FactoryHelper.unique(faker.internet.url),
@@ -58,6 +78,11 @@ export const CourseRunFactory = factory<CourseRun>(() => {
     dashboard_link: null,
     title: faker.lorem.sentence(3),
     display_mode: CourseRunDisplayMode.DETAILED,
+    price,
+    price_currency: currency,
+    offer,
+    certificate_price: certificatePrice,
+    certificate_offer: certificateOffer,
   };
 });
 
