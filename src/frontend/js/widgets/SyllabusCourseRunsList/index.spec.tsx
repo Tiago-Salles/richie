@@ -30,6 +30,8 @@ import { computeStates } from 'utils/CourseRuns';
 import { IntlHelper } from 'utils/IntlHelper';
 import { render } from 'utils/test/render';
 import { setupJoanieSession } from 'utils/test/wrappers/JoanieAppWrapper';
+import { SyllabusCourseRunCompacted } from './components/SyllabusCourseRunCompacted';
+import { SyllabusCourseRun } from './components/SyllabusCourseRun';
 
 jest.mock('utils/context', () => {
   const mock = mockRichieContextFactory().one();
@@ -127,7 +129,6 @@ describe('<SyllabusCourseRunsList/>', () => {
     const languagesContainer = languagesNode.nextSibling! as HTMLElement;
     getByText(languagesContainer, IntlHelper.getLocalizedLanguages(courseRun.languages, intl));
 
-    expect(languagesContainer.nextSibling).toBeNull();
     getByRole(runContainer, 'link', {
       name: StringHelper.capitalizeFirst(courseRun.state.call_to_action)!,
     });
@@ -568,7 +569,7 @@ describe('<SyllabusCourseRunsList/>', () => {
 
     const portalContainer = getPortalContainer();
 
-    // Expect that "is-hidden" class is set only to course runs in (MAX_ARCHIVED_COURSE_RUNS)nth-plus position.
+    // Expect that 'is-hidden' class is set only to course runs in (MAX_ARCHIVED_COURSE_RUNS)nth-plus position.
     expect(portalContainer.querySelectorAll('li').length).toBe(MAX_ARCHIVED_COURSE_RUNS * 2);
     portalContainer.querySelectorAll('li').forEach((listElement, i) => {
       expectCourseRunInList(listElement, courseRuns[i]);
@@ -585,7 +586,7 @@ describe('<SyllabusCourseRunsList/>', () => {
     // click on view more.
     await act(async () => user.click(button));
 
-    // expect that "is-hidden" are removed.
+    // expect that 'is-hidden' are removed.
     portalContainer.querySelectorAll('li').forEach((listElement, i) => {
       expectCourseRunInList(listElement, courseRuns[i]);
       expect(listElement.classList).not.toContain('is-hidden');
@@ -615,7 +616,7 @@ describe('<SyllabusCourseRunsList/>', () => {
     const portalContainer = getPortalContainer();
     expect(screen.queryByRole('button', { name: 'View more' })).not.toBeInTheDocument();
 
-    // expect that "is-hidden" is not set.
+    // expect that 'is-hidden' is not set.
     expect(portalContainer.querySelectorAll('li').length).toBe(MAX_ARCHIVED_COURSE_RUNS - 1);
     portalContainer.querySelectorAll('li').forEach((listElement, i) => {
       expectCourseRunInList(listElement, courseRuns[i]);
@@ -1009,7 +1010,7 @@ describe('<SyllabusCourseRunsList/>', () => {
     const listElements = screen.getAllByRole('listitem');
     expect(listElements.length).toBe(4);
 
-    // Assert there is only one link, one label "Enrolled" and one request to retrieve enrollment.
+    // Assert there is only one link, one label 'Enrolled' and one request to retrieve enrollment.
     expect(await screen.findAllByText('Enrolled')).toHaveLength(1);
 
     const links = screen.getAllByRole('link');
@@ -1023,5 +1024,449 @@ describe('<SyllabusCourseRunsList/>', () => {
     expect(calledUrls).toContain(
       `https://demo.endpoint/api/enrollment/v1/enrollment/${user.username},${onGoingCourseRun.resource_link}`,
     );
+  });
+
+  it('renders price information as paid and paid on SyllabusCourseRunCompacted', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'paid',
+      certificate_offer: 'paid',
+      price_currency: 'EUR',
+      price: 49.99,
+      certificate_price: 59.99,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRunCompacted courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>The course content is paid.<br>€49.99</dd>');
+    expect(content).toContain('<dd>The certification process is paid.<br>€59.99</dd>');
+  });
+
+  it('renders price information as subscription on SyllabusCourseRunCompacted', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'Subscription',
+      certificate_offer: 'Subscription',
+      price_currency: 'EUR',
+      price: 49.99,
+      certificate_price: 59.99,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRunCompacted courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>Subscribe to access the course content.<br>€49.99</dd>');
+    expect(content).toContain(
+      '<dd>The certification process is offered through subscription.<br>€59.99</dd>',
+    );
+  });
+
+  it('renders price information as Partially free on SyllabusCourseRunCompacted', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'Partially free',
+      certificate_offer: 'paid',
+      price_currency: 'EUR',
+      price: 0,
+      certificate_price: 59.99,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRunCompacted courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>The course content is free.<br>€0.00</dd>');
+    expect(content).toContain('<dd>The certification process is paid.<br>€59.99</dd>');
+  });
+
+  it('renders price information as paid and free on SyllabusCourseRunCompacted', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'paid',
+      certificate_offer: 'free',
+      price_currency: 'EUR',
+      price: 49.99,
+      certificate_price: 0,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRunCompacted courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>The course content is paid.<br>€49.99</dd>');
+    expect(content).toContain('<dd>The certification process is free.<br>€0.00</dd>');
+  });
+
+  it('does not render price information on SyllabusCourseRunCompacted', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: undefined,
+      certificate_offer: undefined,
+      price: 59.99,
+      certificate_price: 59.99,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRunCompacted courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).not.toContain('The course content is paid');
+    expect(content).not.toContain('The certification process is paid.');
+  });
+
+  it('does not render course price information on SyllabusCourseRunCompacted', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      certificate_offer: 'paid',
+      price_currency: 'EUR',
+      offer: undefined,
+      price: 59.99,
+      certificate_price: 59.99,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRunCompacted courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).not.toContain('The course content is paid.');
+    expect(content).toContain('<dd>The certification process is paid.<br>€59.99</dd>');
+  });
+
+  it('does not render certificate price information on SyllabusCourseRunCompacted', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      price_currency: 'EUR',
+      offer: 'paid',
+      price: 49.99,
+      certificate_offer: undefined,
+      certificate_price: undefined,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRunCompacted courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>The course content is paid.<br>€49.99</dd>');
+    expect(content).not.toContain('The certification process is paid.');
+  });
+
+  it('does not render prices but only offers on SyllabusCourseRunCompacted', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'free',
+      certificate_offer: 'free',
+      price_currency: 'EUR',
+      price: undefined,
+      certificate_price: undefined,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRunCompacted courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>The course content is free.<br></dd>');
+    expect(content).toContain('<dd>The certification process is free.<br></dd>');
+  });
+
+  it('renders prices as zero on SyllabusCourseRunCompacted', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'free',
+      certificate_offer: 'free',
+      price_currency: 'EUR',
+      price: 0,
+      certificate_price: 0,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRunCompacted courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>The course content is free.<br>€0.00</dd>');
+    expect(content).toContain('<dd>The certification process is free.<br>€0.00</dd>');
+  });
+
+  it('does not render invalid offers on SyllabusCourseRunCompacted', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'invalid',
+      certificate_offer: 'invalid',
+      price_currency: 'EUR',
+      price: 59.99,
+      certificate_price: 59.99,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRunCompacted courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).not.toContain('The course content is');
+    expect(content).not.toContain('The certification process is');
+    expect(content).not.toContain('<br>€59.99');
+  });
+
+  it('renders price information as paid and paid on SyllabusCourseRun', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'paid',
+      certificate_offer: 'paid',
+      price_currency: 'EUR',
+      price: 49.99,
+      certificate_price: 59.99,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRun courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>The course content is paid.<br>€49.99</dd>');
+    expect(content).toContain('<dd>The certification process is paid.<br>€59.99</dd>');
+  });
+
+  it('renders price information as subscription on SyllabusCourseRun', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'Subscription',
+      certificate_offer: 'Subscription',
+      price_currency: 'EUR',
+      price: 49.99,
+      certificate_price: 59.99,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRun courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>Subscribe to access the course content.<br>€49.99</dd>');
+    expect(content).toContain(
+      '<dd>The certification process is offered through subscription.<br>€59.99</dd>',
+    );
+  });
+
+  it('renders price information as Partially free on SyllabusCourseRun', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'Partially free',
+      certificate_offer: 'paid',
+      price_currency: 'EUR',
+      price: 0,
+      certificate_price: 59.99,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRun courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>The course content is free.<br>€0.00</dd>');
+    expect(content).toContain('<dd>The certification process is paid.<br>€59.99</dd>');
+  });
+
+  it('renders price information as paid and free on SyllabusCourseRun', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'paid',
+      certificate_offer: 'free',
+      price_currency: 'EUR',
+      price: 49.99,
+      certificate_price: 0,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRun courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>The course content is paid.<br>€49.99</dd>');
+    expect(content).toContain('<dd>The certification process is free.<br>€0.00</dd>');
+  });
+
+  it('does not render price information on SyllabusCourseRun', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: undefined,
+      certificate_offer: undefined,
+      price: 59.99,
+      certificate_price: 59.99,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRun courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).not.toContain('The course content is paid');
+    expect(content).not.toContain('The certification process is paid.');
+  });
+
+  it('does not render course price information on SyllabusCourseRun', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: undefined,
+      price: 59.99,
+      price_currency: 'EUR',
+      certificate_offer: 'paid',
+      certificate_price: 59.99,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRun courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).not.toContain('The course content is paid.');
+    expect(content).toContain('<dd>The certification process is paid.<br>€59.99</dd>');
+  });
+
+  it('does not render certificate price information on SyllabusCourseRun', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      price_currency: 'EUR',
+      offer: 'paid',
+      price: 49.99,
+      certificate_offer: undefined,
+      certificate_price: undefined,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRun courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>The course content is paid.<br>€49.99</dd>');
+    expect(content).not.toContain('The certification process is paid.');
+  });
+
+  it('does not render prices but only offers on SyllabusCourseRun', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'free',
+      certificate_offer: 'free',
+      price_currency: 'EUR',
+      price: undefined,
+      certificate_price: undefined,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRun courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>The course content is free.<br></dd>');
+    expect(content).toContain('<dd>The certification process is free.<br></dd>');
+  });
+
+  it('renders prices as zero on SyllabusCourseRun', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'free',
+      certificate_offer: 'free',
+      price_currency: 'EUR',
+      price: 0,
+      certificate_price: 0,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRun courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).toContain('<dd>The course content is free.<br>€0.00</dd>');
+    expect(content).toContain('<dd>The certification process is free.<br>€0.00</dd>');
+  });
+
+  it('does not render invalid offers on SyllabusCourseRun', async () => {
+    const course = PacedCourseFactory().one();
+    const courseRun: CourseRun = CourseRunFactoryFromPriority(Priority.ONGOING_OPEN)({
+      languages: ['en'],
+      offer: 'invalid',
+      certificate_offer: 'invalid',
+      price_currency: 'EUR',
+      price: 59.99,
+      certificate_price: 59.99,
+    }).one();
+
+    render(
+      <div className="course-detail__row course-detail__runs course-detail__runs--open">
+        <SyllabusCourseRun courseRun={courseRun} course={course} showLanguages={false} />
+      </div>,
+    );
+
+    const content = getHeaderContainer().innerHTML;
+    expect(content).not.toContain('The course content is');
+    expect(content).not.toContain('The certification process is');
+    expect(content).not.toContain('<br>€59.99');
   });
 });
