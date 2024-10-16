@@ -13,6 +13,7 @@ from django.utils import translation
 from classytags.arguments import Argument, MultiValueArgument
 from classytags.core import Options, Tag
 from classytags.utils import flatten_context
+from cms.api import Page
 from cms.templatetags.cms_tags import (
     Placeholder,
     PlaceholderOptions,
@@ -23,6 +24,8 @@ from cms.utils import get_site_id
 from cms.utils.plugins import get_plugins
 
 from richie.apps.courses.defaults import RICHIE_MAX_ARCHIVED_COURSE_RUNS
+from richie.apps.courses.models.category import Category
+from richie.apps.courses.models.course import Course
 
 from ..lms import LMSHandler
 from ..models import CourseRunCatalogVisibility
@@ -269,6 +272,36 @@ def joanie_product_widget_props(context):
     course_code = course_run.direct_course.code
 
     return json.dumps({"productId": product_id, "courseCode": course_code})
+
+
+@register.simple_tag()
+def get_categories_pages_have_faqs(course: Course) -> list[Page]:
+    """
+    Return a list with all pages have faq
+
+    usage: `{% get_categories_pages_have_faqs current_page.course as pages_have_faqs %}`
+    """
+
+    categories_pages: list[Category] = course.get_categories()
+    categories_pages = categories_pages.filter(
+        extended_object__reverse_id__isnull=False
+    )
+
+    categories_with_faq: list[Category] = []
+    for category in categories_pages:
+        plugins = (
+            category.extended_object.get_placeholders()
+            .get(slot="course_faq")
+            .get_plugins()
+        )
+        if len(plugins) > 0:
+            categories_with_faq.append(category)
+
+    pages_have_faq: list[Page] = [
+        category.extended_object for category in categories_with_faq
+    ]
+
+    return pages_have_faq
 
 
 @register.simple_tag(takes_context=True)

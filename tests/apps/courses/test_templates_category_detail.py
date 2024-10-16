@@ -21,6 +21,7 @@ from richie.apps.courses.factories import (
     OrganizationFactory,
     PersonFactory,
 )
+from richie.plugins.nesteditem.defaults import ACCORDION
 
 
 class CategoryCMSTestCase(CMSTestCase):
@@ -552,4 +553,79 @@ class CategoryCMSTestCase(CMSTestCase):
         self.assertNotContains(
             response,
             '<meta name="description"',
+        )
+
+
+class CategoryFAQTestCase(CMSTestCase):
+    """
+    Test case to validate a category FAQ's content against UI aspects
+    """
+
+    def test_template_category_detail_has_course_faq(self):
+        """
+        Validates the creation of FAQ's for a category and its content
+        """
+
+        faq_quantity = 3
+        category = CategoryFactory.create(page_title="Accessible", should_publish=True)
+        placeholder = category.extended_object.placeholders.get(slot="course_faq")
+        container = add_plugin(
+            language="en",
+            placeholder=placeholder,
+            plugin_type="NestedItemPlugin",
+            variant=ACCORDION,
+        )
+
+        for question in range(1, faq_quantity):
+            question_container = add_plugin(
+                language="en",
+                placeholder=placeholder,
+                plugin_type="NestedItemPlugin",
+                target=container,
+                content=f"{question}. question?",
+                variant=ACCORDION,
+            )
+
+            add_plugin(
+                language="en",
+                placeholder=placeholder,
+                plugin_type="NestedItemPlugin",
+                target=question_container,
+                content=f"Answer of question {question}.",
+                variant=ACCORDION,
+            )
+
+        page = category.get_page()
+        page.publish("en")
+        url = page.get_absolute_url()
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, '<h2 class="category-detail__title">Category FAQ\'s</h2>'
+        )
+
+        for question in range(1, faq_quantity):
+            self.assertContains(response, f"{question}. question?")
+            self.assertContains(response, f"Answer of question {question}.")
+
+    def test_template_category_detail_empty_course_faq(self):
+        """
+        Validates when a category does not have FAQ's it renders a message indicating
+        """
+
+        category = CategoryFactory.create(page_title="Accessible", should_publish=True)
+
+        page = category.get_page()
+        page.publish("en")
+        url = page.get_absolute_url()
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, '<h2 class="category-detail__title">Category FAQ\'s</h2>'
+        )
+        self.assertContains(
+            response,
+            '<p class="category-detail__empty">Enter a FAQ for this category</p>',
         )

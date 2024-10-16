@@ -26,6 +26,7 @@ Versioning](https://semver.org/spec/v2.0.0.html).
     in the learner dashboard
 - Add `PaymentScheduleHelper` utils
 - Display installment information on certificate product blocks
+- Create FAQ's for a category and use them in a course page 
 
 ### Changed
 
