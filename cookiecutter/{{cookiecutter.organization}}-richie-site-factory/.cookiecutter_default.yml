@@ -1,2 +1,3 @@
 default_context:
     _organization: {{cookiecutter.organization}}
+    _org_dockerhub: {{cookiecutter.org_dockerhub}}

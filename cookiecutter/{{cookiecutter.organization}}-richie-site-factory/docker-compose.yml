@@ -2,7 +2,7 @@ include:
   - docker-compose-${ACTIVATED_DB}.yml
 services:
   elasticsearch:
-    image: fundocker/openshift-elasticsearch:6.6.2
+    image: {{cookiecutter.org_dockerhub}}/openshift-elasticsearch:6.6.2
     environment:
       - discovery.type=single-node
     env_file:
@@ -73,7 +73,7 @@ services:
       target: nginx
       args:
         DOCKER_USER: ${DOCKER_USER:-1000}
-        NGINX_IMAGE_NAME: ${NGINX_IMAGE_NAME:-fundocker/openshift-nginx}
+        NGINX_IMAGE_NAME: ${NGINX_IMAGE_NAME:-{{cookiecutter.org_dockerhub}}/openshift-nginx}
         NGINX_IMAGE_TAG: ${NGINX_IMAGE_TAG:-1.13}
         SITE: ${RICHIE_SITE:?}
     image: "${RICHIE_SITE:?}-nginx:production"

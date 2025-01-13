@@ -30,27 +30,26 @@ fi
 if [[ n_sites -eq 1 ]]; then
     # If there is only one site, just activate it
     echo "RICHIE_SITE=${sites[0]}" > .env
-    exit 0
-fi
+else
+    prompt="Select an available site to activate:\\n"
+    for (( i=0; i<n_sites; i++ )); do
+        prompt+="[$((i+1))] ${sites[$i]}"
+        if [[ $((i+1)) -eq ${default} ]]; then
+            prompt+=" (default)"
+        fi
+        prompt+="\\n"
+    done
+    prompt+="Your choice: "
+    read -r -p "$(echo -e "${prompt}")" choice
 
-prompt="Select an available site to activate:\\n"
-for (( i=0; i<n_sites; i++ )); do
-    prompt+="[$((i+1))] ${sites[$i]}"
-    if [[ $((i+1)) -eq ${default} ]]; then
-        prompt+=" (default)"
+    if [[ ${choice} -gt n_sites ]]; then
+        (>&2 echo "Invalid choice ${choice} (should be <= ${n_sites})")
+        exit 10
     fi
-    prompt+="\\n"
-done
-prompt+="Your choice: "
-read -r -p "$(echo -e "${prompt}")" choice
 
-if [[ ${choice} -gt n_sites ]]; then
-    (>&2 echo "Invalid choice ${choice} (should be <= ${n_sites})")
-    exit 10
-fi
-
-if [[ ${choice} -le 0 ]]; then
-    choice=${default}
+    if [[ ${choice} -le 0 ]]; then
+        choice=${default}
+    fi
 fi
 
 prompt="Select an available database to activate:\\n"

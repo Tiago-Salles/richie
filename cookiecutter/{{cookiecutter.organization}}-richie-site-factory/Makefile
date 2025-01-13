@@ -11,7 +11,7 @@ COLOR_RESET   = \033[0m
 # -- Docker
 DOCKER_UID           = $(shell id -u)
 DOCKER_GID           = $(shell id -g)
-NGINX_IMAGE_NAME     = fundocker/openshift-nginx
+NGINX_IMAGE_NAME     = {{cookiecutter.org_dockerhub}}/openshift-nginx
 NGINX_IMAGE_TAG      = 1.13
 
 COMPOSE              = \

@@ -1,5 +1,6 @@
 {
     "organization": null,
+    "org_dockerhub": "fundocker",
     "_copy_without_render": [
         ".circleci",
         "bin/activate",
