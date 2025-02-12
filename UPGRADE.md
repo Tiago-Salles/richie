@@ -16,6 +16,14 @@ $ make migrate
 
 ## Unreleased
 
+- Added the new setting `RICHIE_DEFAULT_COURSE_RUN_PRICE_CURRENCY` which is used to offer prices (courses price and certificate prices).
+```
+  RICHIE_DEFAULT_COURSE_RUN_PRICE_CURRENCY = values.Value(
+      "EUR",
+      environ_name="RICHIE_DEFAULT_COURSE_RUN_PRICE_CURRENCY",
+      environ_prefix=None,
+  )
+```
 - Header menu template has been modified to include features from `MainMenuEntry`
 - There is a new setting that can be used to define a list of color variant for the menu
   entry of a page:
