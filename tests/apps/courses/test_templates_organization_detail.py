@@ -704,10 +704,10 @@ class OrganizationCMSTestCase(CMSTestCase):
 
     def test_templates_organization_detail_cms_published_hidden_courses(self):
         """
-        Ensures that changing the course run `catalog_visibility` paratemer
-        will prevent it from showing on the organization detail page
+        Ensures that changing the course run `catalog_visibility` to `hidden`
+        parameter will prevent it from being take in account to compute the
+        course state on the organization detail page
         """
-
         organization = OrganizationFactory(should_publish=True)
         course = CourseFactory.create(
             fill_organizations=[organization], should_publish=True

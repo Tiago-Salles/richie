@@ -721,10 +721,10 @@ class CategoryAdditionalInfoCMSTestCase(CMSTestCase):
 
     def test_templates_category_detail_cms_published_hidden_courses(self):
         """
-        Ensures that changing the course run `catalog_visibility` paratemer
-        will prevent it from showing on the category detail page
+        Ensures that changing the course run `catalog_visibility` to `hidden`
+        parameter will prevent it from being take in account to compute the
+        course state on the category detail page
         """
-
         category = CategoryFactory(should_publish=True)
         course = CourseFactory.create(fill_categories=[category], should_publish=True)
         CourseRunFactory.create(
