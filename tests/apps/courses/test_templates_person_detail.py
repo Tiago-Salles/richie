@@ -667,10 +667,10 @@ class PersonCMSTestCase(CMSTestCase):
 
     def test_templates_person_detail_cms_published_hidden_courses(self):
         """
-        Ensures that changing the course run `catalog_visibility` paratemer
-        will prevent it from showing on the person detail page
+        Ensures that changing the course run `catalog_visibility` to `hidden`
+        parameter will prevent it from being take in account to compute the
+        course state on the person detail page
         """
-
         person = PersonFactory(should_publish=True)
         course = CourseFactory.create(fill_team=[person], should_publish=True)
         CourseRunFactory.create(
