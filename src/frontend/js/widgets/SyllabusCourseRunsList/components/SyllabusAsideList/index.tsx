@@ -108,6 +108,11 @@ export const SyllabusAsideList = ({
 
   const showLanguages = CourseRunHelper.IsAllCourseRunsWithSameLanguages(courseRuns);
 
+  // If there are no runs to display at all, don't render anything
+  if (otherRuns.length === 0) {
+    return null;
+  }
+
   return (
     <>
       <h2 className="course-detail__title">
@@ -161,7 +166,7 @@ export const SyllabusAsideList = ({
           <SyllabusSimpleCourseRunsList courseRuns={upcomingRuns} />
         </div>
       )}
-      {ongoingRuns.length > 0 && (
+      {ongoingRuns.length > 0 && openedRuns.length > 0 && (
         <div className="course-detail__row course-detail__runs course-detail__runs--ongoing">
           <h3 className="course-detail__title">
             <FormattedMessage {...messages.ongoing} />
