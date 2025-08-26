@@ -5,6 +5,7 @@ import { handle } from 'utils/errors/handle';
 import { HttpError, HttpStatusCode } from 'utils/errors/HttpError';
 import context from 'utils/context';
 import API from './openedx-hawthorn';
+import { location as mockedLocation } from 'utils/indirection/window';
 
 jest.mock('utils/errors/handle');
 jest.mock('utils/context', () => ({
@@ -19,6 +20,16 @@ jest.mock('utils/context', () => ({
     ],
   }).one(),
 }));
+jest.mock('utils/indirection/window', () => {
+  const assign = jest.fn();
+  return {
+    __esModule: true,
+    location: {
+      pathname: '/test/path',
+      assign,
+    },
+  };
+});
 const mockHandle: jest.Mock<typeof handle> = handle as any;
 
 describe('OpenEdX Hawthorn API', () => {
@@ -28,6 +39,11 @@ describe('OpenEdX Hawthorn API', () => {
 
   const LMSConf = context.lms_backends![0];
   const HawthornApi = API(LMSConf);
+
+  afterEach(() => {
+    // @ts-ignore
+    mockedLocation.assign.mockClear();
+  });
 
   describe('APIOptions', () => {
     it('if a route is overriden through APIOptions, related request uses it', async () => {
@@ -42,6 +58,62 @@ describe('OpenEdX Hawthorn API', () => {
       fetchMock.get(`${EDX_ENDPOINT}/my-custom-api/user/v2.0/whoami`, HttpStatusCode.UNAUTHORIZED);
 
       await expect(CustomApi.user.me()).resolves.toBe(null);
+    });
+  });
+
+  describe('login/register next prefix', () => {
+    const originalEnv = { ...process.env };
+
+    beforeEach(() => {
+      // Ensure a predictable path for next param
+      mockedLocation.pathname = '/test/path';
+    });
+
+    afterEach(() => {
+      process.env = { ...originalEnv };
+      // @ts-ignore
+      mockedLocation.assign.mockClear();
+    });
+
+    it('uses options.siteName when provided (highest priority)', () => {
+      const api = API(LMSConf, { routes: {}, /* @ts-ignore */ siteName: 'richie-ap' });
+      api.user.login();
+      expect(mockedLocation.assign).toHaveBeenCalledWith(
+        `${LMSConf.endpoint}/login?next=richie-ap/test/path`,
+      );
+
+      api.user.register();
+      expect(mockedLocation.assign).toHaveBeenCalledWith(
+        `${LMSConf.endpoint}/register?next=richie-ap/test/path`,
+      );
+    });
+
+    it('uses RICHIE_CONTAINER_NAME environment variable when options.siteName is not provided', () => {
+      process.env.RICHIE_CONTAINER_NAME = 'richie-br';
+      const api = API(LMSConf);
+      api.user.login();
+      expect(mockedLocation.assign).toHaveBeenCalledWith(
+        `${LMSConf.endpoint}/login?next=richie-br/test/path`,
+      );
+
+      api.user.register();
+      expect(mockedLocation.assign).toHaveBeenCalledWith(
+        `${LMSConf.endpoint}/register?next=richie-br/test/path`,
+      );
+    });
+
+    it('falls back to default "richie" when neither option nor env is provided', () => {
+      delete process.env.RICHIE_CONTAINER_NAME;
+      const api = API(LMSConf);
+      api.user.login();
+      expect(mockedLocation.assign).toHaveBeenCalledWith(
+        `${LMSConf.endpoint}/login?next=richie/test/path`,
+      );
+
+      api.user.register();
+      expect(mockedLocation.assign).toHaveBeenCalledWith(
+        `${LMSConf.endpoint}/register?next=richie/test/path`,
+      );
     });
   });
 

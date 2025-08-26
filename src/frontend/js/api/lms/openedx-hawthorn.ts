@@ -42,6 +42,9 @@ const API = (APIConf: AuthenticationBackend | LMSBackend, options?: APIOptions):
     options?.routes,
   );
 
+  // Determine the next path prefix strictly from explicit inputs (no runtime host detection)
+  const nextPrefix = (options as any)?.siteName || process.env.RICHIE_CONTAINER_NAME || "richie";
+
   return {
     user: {
       me: async () => {
@@ -58,11 +61,11 @@ const API = (APIConf: AuthenticationBackend | LMSBackend, options?: APIOptions):
           });
       },
       /*
-        / ! \ Prefix next param with richie.
-        In this way, OpenEdX Nginx conf knows that we want to go back to richie app after login/redirect
+        / ! \ Prefix next param with the configured site name.
+        Only use explicit configuration or environment variable at deploy-time.
       */
-      login: () => location.assign(`${ROUTES.user.login}?next=richie${location.pathname}`),
-      register: () => location.assign(`${ROUTES.user.register}?next=richie${location.pathname}`),
+      login: () => location.assign(`${ROUTES.user.login}?next=${nextPrefix}${location.pathname}`),
+      register: () => location.assign(`${ROUTES.user.register}?next=${nextPrefix}${location.pathname}`),
       logout: async () => {
         await fetch(ROUTES.user.logout, {
           mode: 'no-cors',
